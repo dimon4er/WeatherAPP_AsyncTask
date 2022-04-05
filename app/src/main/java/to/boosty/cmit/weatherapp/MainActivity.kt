@@ -7,11 +7,13 @@ import android.widget.EditText
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import org.jetbrains.anko.doAsync
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.launch
 import org.json.JSONException
 import org.json.JSONObject
 import to.boosty.cmit.weatherapp.databinding.ActivityMainBinding
-import java.net.MalformedURLException
 import java.net.URL
 import java.text.SimpleDateFormat
 import java.util.*
@@ -40,67 +42,52 @@ class MainActivity : AppCompatActivity() {
         tv_pressure = binding.tvPressure
         tv_sunrise = binding.tvSurise
         tv_sunset = binding.tvSunset
-        //val city = "Санкт-Петербург"
-
 
         button?.setOnClickListener {
+            Log.d("TAG", "1")
             if (et_city?.text?.toString()?.trim()?.equals("")!!) {
+                Log.d("TAG", "2")
                 Toast.makeText(this, "Введите город", Toast.LENGTH_SHORT).show()
             } else {
                 val city: String = et_city!!.text.toString()
                 val api = "11d717397570d1d0b40264031a316a90"
-                Log.d("TAG", "${tv_sunset?.text}")
+                Log.d("TAG", "3")
                 val url =
                     "https://api.openweathermap.org/data/2.5/weather?q=$city&units=metric&appid=$api"
 
-                doAsync {
-                    val apiResponse = URL(url).readText()
-                    val main = JSONObject(apiResponse).getJSONObject("main")
-                    val temper = main.getString("temp")
-                    val press = main.getString("pressure")
-                    val sys = JSONObject(apiResponse).getJSONObject("sys")
-                    val myLocale = Locale("ru", "RU")
-                    val formatter = SimpleDateFormat("HH:mm:ss", myLocale)
-                    fun Date_SR(s: String) = Date(s.toLong() * 1000 + (60 * 60 * 1000) * 3)
-                    val time_Sunrise = formatter.format(Date_SR(sys.getString("sunrise")))
-                    val time_Sunset = formatter.format(Date_SR(sys.getString("sunset")))
-
-                    tv_city?.text = et_city?.text?.toString()
-                    tv_temp?.text = temper
-                    tv_pressure?.text = press
-                    tv_sunset?.text = time_Sunset
-                    tv_sunrise?.text = time_Sunrise
-                    Log.d("TAG", "${tv_sunset?.text}")
-                }
+                CoroutineScope(Dispatchers.IO).async { processFinish(url) }
             }
 
         }
 
-        /*fun processFinish(output: String) {
-            try {
-                val resJSON = JSONObject(output)
-                Log.d("TAG", resJSON.toString())
-                val weather = resJSON.getJSONObject("main")
-                val sys = resJSON.getJSONObject("sys")
-                val temp = binding.tvTemp
-                val pressure = binding.tvPressure
-                val sunset = binding.tvSunset
-                val sunrise = binding.tvSurise
-                temp.text = weather.getString("temp")
-                pressure.text = weather.getString("pressure")
-                val myLocale = Locale("ru", "RU")
-                val formatter = SimpleDateFormat("HH:mm:ss", myLocale)
-                fun Date_SR(s: String) = Date(s.toLong() * 1000 + (60 * 60 * 1000) * 3)
-                val time_Sunrise = formatter.format(Date_SR(sys.getString("sunrise")))
-                val time_Sunset = formatter.format(Date_SR(sys.getString("sunset")))
-                sunrise.text = time_Sunrise
-                sunset.text = time_Sunset
-            } catch (ex: JSONException) {
 
-            }
-        }*/
 
     }
+    suspend fun processFinish(output: String) {
+        try {
+            Log.d("TAG", "$output")
+            val apiResponse = URL(output).readText()
+            val resJSON = JSONObject(apiResponse)
+            val weather = resJSON.getJSONObject("main")
+            val sys = resJSON.getJSONObject("sys")
+            val temp = binding.tvTemp
+            val pressure = binding.tvPressure
+            val sunset = binding.tvSunset
+            val sunrise = binding.tvSurise
+            temp.text = weather.getString("temp")
+            pressure.text = weather.getString("pressure")
+            val myLocale = Locale("ru", "RU")
+            val formatter = SimpleDateFormat("HH:mm:ss", myLocale)
+            fun Date_SR(s: String) = Date(s.toLong() * 1000 + (60 * 60 * 1000) * 3)
+            val time_Sunrise = formatter.format(Date_SR(sys.getString("sunrise")))
+            val time_Sunset = formatter.format(Date_SR(sys.getString("sunset")))
+            sunrise.text = time_Sunrise
+            sunset.text = time_Sunset
+        } catch (ex: JSONException) {
+            Log.d("TAG", "5")
+        }
+    }
 }
+
 
 
