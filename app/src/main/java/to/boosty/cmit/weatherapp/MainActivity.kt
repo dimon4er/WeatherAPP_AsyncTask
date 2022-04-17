@@ -1,6 +1,8 @@
 package to.boosty.cmit.weatherapp
 
 import android.content.Intent
+import android.content.SharedPreferences
+import android.graphics.Color
 import android.os.Bundle
 import android.util.Log
 import android.view.Menu
@@ -11,6 +13,7 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.NavUtils
+import androidx.preference.PreferenceManager
 import kotlinx.coroutines.*
 import org.json.JSONException
 import org.json.JSONObject
@@ -19,7 +22,7 @@ import java.net.URL
 import java.text.SimpleDateFormat
 import java.util.*
 
-class MainActivity : AppCompatActivity() {
+class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceChangeListener {
 
     private lateinit var binding: ActivityMainBinding
     private lateinit var et_city: EditText
@@ -29,6 +32,10 @@ class MainActivity : AppCompatActivity() {
     private lateinit var tv_sunrise: TextView
     private lateinit var tv_sunset: TextView
     private lateinit var button: Button
+
+    protected var showTemp = true
+    protected var showPress = true
+    protected var color = "red"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -61,8 +68,29 @@ class MainActivity : AppCompatActivity() {
 
         }
 
+        setupSharedPreferences()
 
+    }
 
+    private fun setupSharedPreferences() {
+        val sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this)
+        showPress = sharedPreferences.getBoolean("show_pressure", true)
+        showTemp = sharedPreferences.getBoolean("show_temp", true)
+        color = sharedPreferences.getString("pref_color_key", "red").toString()
+
+        sharedPreferences.registerOnSharedPreferenceChangeListener(this)
+    }
+
+    override fun onSharedPreferenceChanged(sharedPreferences: SharedPreferences?, key: String?) {
+        when {
+            key.equals("show_pressure") -> showPress = sharedPreferences!!.getBoolean("show_pressure", true)
+            key.equals("show_temp") -> showTemp = sharedPreferences!!.getBoolean("show_temp", true)
+            key.equals("pref_color_key") -> color = sharedPreferences!!.getString("pref_color_key", "red").toString()
+        }
+    }
+
+    override fun onStart() {
+        super.onStart()
     }
 
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
@@ -95,13 +123,15 @@ class MainActivity : AppCompatActivity() {
             val pressure = binding.tvPressure
             val sunset = binding.tvSunset
             val sunrise = binding.tvSurise
-            temp.text = weather.getString("temp")
-            pressure.text = weather.getString("pressure")
+            if (showTemp) temp.text = weather.getString("temp") else temp.text = ""
+            if (showPress)pressure.text = weather.getString("pressure") else pressure.text = ""
             val myLocale = Locale("ru", "RU")
             val formatter = SimpleDateFormat("HH:mm:ss", myLocale)
             fun Date_SR(s: String) = Date(s.toLong() * 1000 + (60 * 60 * 1000) * 3)
             val time_Sunrise = formatter.format(Date_SR(sys.getString("sunrise")))
             val time_Sunset = formatter.format(Date_SR(sys.getString("sunset")))
+            sunrise.setTextColor(Color.parseColor(color))
+            sunset.setTextColor(Color.parseColor(color))
             sunrise.text = time_Sunrise
             sunset.text = time_Sunset
         } catch (ex: JSONException) {
@@ -112,6 +142,7 @@ class MainActivity : AppCompatActivity() {
 
 
     }
+
 }
 
 
